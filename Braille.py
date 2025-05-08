@@ -1,0 +1,113 @@
+from PIL import Image
+import numpy as np
+import sys
+
+bayer = np.array([
+    [0, 8, 2, 10],
+    [12, 4, 14, 6],
+    [3, 11, 1, 9],
+    [15, 7, 13, 5]
+]) / 16.0
+
+def block_average_downsample(image, new_width):
+    # 讀取圖片
+    width, height = image.size
+    pixels = np.array(image, dtype=np.float32)
+
+    # 計算每個新 pixel 對應原圖的區塊大小
+    aspect_ratio = height / width
+    new_height = int(aspect_ratio * new_width * FONT_BBOX_RATIO)
+    block_w = width / new_width
+    block_h = height / new_height
+
+    # 初始化輸出陣列
+    downsampled = np.zeros((new_height, new_width), dtype=np.float32)
+
+    for y in range(new_height):
+        for x in range(new_width):
+            # 對應的原圖區塊範圍
+            x_start = int(x * block_w)
+            x_end = int((x + 1) * block_w)
+            y_start = int(y * block_h)
+            y_end = int((y + 1) * block_h)
+
+            block = pixels[y_start:y_end, x_start:x_end]
+            downsampled[y, x] = np.mean(block)
+
+    return downsampled  # 每個值為 float 灰階 0~255
+
+def adjust_pic(image_path, vscode, new_width):
+    image = Image.open(image_path).convert("L")
+    resized = block_average_downsample(image, new_width)
+    resized /= 255.
+    if not vscode: resized = 1 - resized
+    return resized
+
+def ordered_dither(input_array):
+    h, w = input_array.shape
+    threshold_map = np.tile(bayer, (h // 4 + 1, w // 4 + 1))[:h, :w]
+    return input_array > threshold_map
+
+def value_2x4(arr):
+    ascii_lines = []
+    width = 2
+    height = 4
+    
+    h, w = arr.shape
+    num_rows = h // height
+    num_cols = w // width
+    
+    for row in range(num_rows):
+        line = ""
+        for col in range(num_cols):
+            y_start = row * height
+            y_end = (row + 1) * height
+            x_start = col * width
+            x_end = (col + 1) * width
+            
+            grid = arr[y_start:y_end, x_start:x_end]
+            line += braille_char(braille_value(grid))
+        ascii_lines.append(line)
+    
+    return ascii_lines
+
+braille_index_map = [
+    (0,0), (1,0), (2,0),
+    (0,1), (1,1), (2,1),
+    (3,0), (3,1),
+]
+
+def braille_value(grid):
+    total = 0
+    for i, (dy, dx) in enumerate(braille_index_map):
+        if dy < grid.shape[0] and dx < grid.shape[1] and grid[dy, dx]:
+            total |= (1 << i)
+    return total
+
+def braille_char(value):
+    if (value == 0): return chr(0x2801)
+    return chr(0x2800 + value)
+
+def image_to_braille_bayer(image_path, vscode, new_width=128):
+    img = adjust_pic(image_path, vscode, new_width)
+    bool_np_array = ordered_dither(img)
+    braille_array = value_2x4(bool_np_array)
+    return braille_array
+
+def str_to_bool(s):
+    return s.lower() in ("true", "1", "yes", "y")
+
+# 執行並輸出
+file_name = "pics/" + sys.argv[1]
+vscode = str_to_bool(sys.argv[2])
+new_width = 128
+FONT_BBOX_RATIO = 1.13 if vscode else 1.35
+LINE2WIDTH = 6.4
+if len(sys.argv) > 3: 
+    if str_to_bool(sys.argv[4]): new_width = int(sys.argv[3])
+    else: new_width = int(int(sys.argv[3]) * LINE2WIDTH)
+braille_string = image_to_braille_bayer(file_name, vscode, new_width)
+
+with open('braille.txt', 'w') as f:
+    for line in braille_string:
+        f.write(line + "\n")
