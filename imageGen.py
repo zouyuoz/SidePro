@@ -102,7 +102,7 @@ font_bbox_ration = 0.455 if vscode else 0.51
 new_height = int(aspect_ratio * new_width * font_bbox_ration)
 resized = image.resize((new_width, new_height))
 '''
-new_width = 178 if vscode else 320 # horizontal vscode = 164 else 100 (verti), text editor 150
+new_width = 100 if vscode else 320 # horizontal vscode = 164 else 100 (verti), text editor 150
 font_bbox_ratio = 0.455 if vscode else 0.48
 resized = block_average_downsample(image, new_width, font_bbox_ratio)
 

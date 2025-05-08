@@ -102,10 +102,6 @@ file_name = "pics/" + sys.argv[1]
 vscode = str_to_bool(sys.argv[2])
 new_width = 128
 FONT_BBOX_RATIO = 1.13 if vscode else 1.35
-LINE2WIDTH = 6.4
-if len(sys.argv) > 3: 
-    if str_to_bool(sys.argv[4]): new_width = int(sys.argv[3])
-    else: new_width = int(int(sys.argv[3]) * LINE2WIDTH)
 braille_string = image_to_braille_bayer(file_name, vscode, new_width)
 
 with open('braille.txt', 'w') as f:
