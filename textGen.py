@@ -6,8 +6,19 @@ consolas = "C:/Windows/Fonts/consolab.ttf"
 
 abandom = ["g", "^", "\"", "_", ","] # "w", "y", 
 
-def get_char_grayscale(char, font_path=consolas, font_size=11, image_size=(7, 11)):
+def get_char_grayscale(char, font_path=fira, font_size=16):
     if char in abandom: return
+    # 計算行數
+    lines = char.split("\n")
+    num_lines = len(lines)
+    
+    line_spacing = font_size // 3
+    
+    # 動態調整畫布大小
+    image_width = int(0.6 * font_size * max(len(line) for line in lines))  # 取最長行的長度
+    image_height = int(0.87 * (font_size + line_spacing) * num_lines)  # 高度根據行數調整
+    image_size = (image_width, image_height)
+    
     # 建立白底畫布
     img = Image.new("L", image_size, color=255)  # L 模式 = 灰階
     draw = ImageDraw.Draw(img)
@@ -20,20 +31,22 @@ def get_char_grayscale(char, font_path=consolas, font_size=11, image_size=(7, 11
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     pos = ((image_size[0] - w) // 2 - bbox[0], (image_size[1] - h) // 2 - bbox[1])
     
-    # 畫字
-    draw.text(pos, char, fill=0, font=font)
-    
-    check_list = ["\"", ";", "=", ","] # "|", "_", "L", "g", "`", "^", "U", "K"
-    # if char in check_list: img.show()
+    # 畫每一行文字
+    for i, line in enumerate(lines):
+        bbox = draw.textbbox((0, 0), line, font=font)
+        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        pos = ((image_size[0] - w) // 2 - bbox[0], i * (font_size + line_spacing))  # 每行垂直偏移
+        draw.text(pos, line, fill=0, font=font)
 
-    # 計算平均色階
+    # img.show()
+    
     img_array = np.array(img, dtype=np.uint8)
     mean_val = img_array.mean()
 
     # Normalize：黑=0，白=255 -> 白背景越多 = 越高值
     normalized = mean_val / 255.0
     return normalized
-
+    
 def analyze_string(string):
     result = {}
     for ch in string:
@@ -41,6 +54,7 @@ def analyze_string(string):
         if gray_level is None: continue
         result[ch] = gray_level
     return result
+
 
 ascii_printable = ''.join(chr(i) for i in range(32, 127))
 # 測試
