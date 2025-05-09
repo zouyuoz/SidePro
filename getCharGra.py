@@ -3,7 +3,11 @@ import numpy as np
 
 fira = "C:/Users/zyqio/AppData/Local/Microsoft/Windows/Fonts/FiraCode-VariableFont_wght.ttf"
 consolas = "C:/Windows/Fonts/consola.ttf"
-def get_char_grayscale(char, font_path=fira, font_size=16, image_size=(10,16)):
+
+abandom = ["g", "^", "\"", "w", "y", "_", ","]
+
+def get_char_grayscale(char, font_path=fira, font_size=32, image_size=(20, 32)):
+    if char in abandom: return
     # 建立白底畫布
     img = Image.new("L", image_size, color=255)  # L 模式 = 灰階
     draw = ImageDraw.Draw(img)
@@ -19,8 +23,8 @@ def get_char_grayscale(char, font_path=fira, font_size=16, image_size=(10,16)):
     # 畫字
     draw.text(pos, char, fill=0, font=font)
     
-    check_list = [] # "|", "`", ",", "_", "L", "^", "U", "K", "g", "w"
-    if char in check_list: img.show()
+    check_list = ["\"", ";", "=", ","] # "|", "_", "L", "g", "`", "^", "U", "K"
+    # if char in check_list: img.show()
 
     # 計算平均色階
     img_array = np.array(img, dtype=np.uint8)
@@ -34,6 +38,7 @@ def analyze_string(string):
     result = {}
     for ch in string:
         gray_level = get_char_grayscale(ch)
+        if gray_level is None: continue
         result[ch] = gray_level
     return result
 
@@ -51,19 +56,20 @@ normalize_raio = 255 / (1 - min_val)
 
 # exit()
 
-SELECT = " JiWo"
+SELECT = " JIWOjiwo"
+SELECT += "+-:"
 
 # print(min_val)
 print("ascii_list = \"", end="")
 for ch, val in result:
-    if (ch not in SELECT): continue
+    # if (ch not in SELECT): continue
     prefix = "\\" if ch == "\\" or ch == "\"" else "" 
     print(prefix, ch, sep="", end="")
     
-print("\"\nlightness = [", end="")
+print("\"\n    lightness = [", end="")
 
 for i, (ch, val) in enumerate(result):
-    if (ch not in SELECT): continue
+    # if (ch not in SELECT): continue
     norVal = (val - min_val) * normalize_raio
     end_str = ", " if i != len(result) - 1 else ""
     print(f"{norVal:.4f}", end=end_str)

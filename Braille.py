@@ -3,20 +3,40 @@ import numpy as np
 import sys
 
 bayer = np.array([
-    [0, 8, 2, 10],
-    [12, 4, 14, 6],
-    [3, 11, 1, 9],
-    [15, 7, 13, 5]
+    [ 0,  8,  2, 10],
+    [12,  4, 14,  6],
+    [ 3, 11,  1,  9],
+    [15,  7, 13,  5]
 ]) / 16.0
 
-def block_average_downsample(image, new_width):
+big_bayer = np.array([
+    [ 0, 32,  8, 40,  2, 34, 10, 42],
+    [48, 16, 56, 24, 50, 18, 58, 26],
+    [12, 44,  4, 35, 14, 46,  6, 38],
+    [60, 28, 52, 20, 62, 30, 54, 22],
+    [ 3, 35, 11, 43,  1, 33,  9, 41],
+    [51, 19, 59, 27, 49, 17, 57, 25],
+    [15, 47,  7, 39, 13, 45,  5, 37],
+    [63, 31, 55, 23, 61, 29, 53, 21]
+]) / 64.
+
+def new_w_and_h(old_w, old_h, value):
+    if IS_WIDTH:
+        new_width = value
+        new_height = int(old_h * FONT_BBOX_RATIO * new_width / old_w)
+        return (new_width, new_height)
+    # else
+    new_height = value
+    new_width = int(old_w * new_height / (old_h * FONT_BBOX_RATIO))
+    return (new_width, new_height)
+
+def block_average_downsample(image, char_length):
     # 讀取圖片
     width, height = image.size
     pixels = np.array(image, dtype=np.float32)
 
     # 計算每個新 pixel 對應原圖的區塊大小
-    aspect_ratio = height / width
-    new_height = int(aspect_ratio * new_width * FONT_BBOX_RATIO)
+    new_width, new_height = new_w_and_h(width, height, char_length)
     block_w = width / new_width
     block_h = height / new_height
 
@@ -45,7 +65,7 @@ def adjust_pic(image_path, vscode, new_width):
 
 def ordered_dither(input_array):
     h, w = input_array.shape
-    threshold_map = np.tile(bayer, (h // 4 + 1, w // 4 + 1))[:h, :w]
+    threshold_map = np.tile(big_bayer, (h // 8 + 1, w // 8 + 1))[:h, :w]
     return input_array > threshold_map
 
 def value_2x4(arr):
@@ -88,8 +108,8 @@ def braille_char(value):
     if (value == 0): return chr(0x2801)
     return chr(0x2800 + value)
 
-def image_to_braille_bayer(image_path, vscode, new_width=128):
-    img = adjust_pic(image_path, vscode, new_width)
+def image_to_braille_bayer(image_path, vscode, char_length=128):
+    img = adjust_pic(image_path, vscode, char_length)
     bool_np_array = ordered_dither(img)
     braille_array = value_2x4(bool_np_array)
     return braille_array
@@ -100,9 +120,12 @@ def str_to_bool(s):
 # 執行並輸出
 file_name = "pics/" + sys.argv[1]
 vscode = str_to_bool(sys.argv[2])
-new_width = 128
-FONT_BBOX_RATIO = 1.13 if vscode else 1.35
-braille_string = image_to_braille_bayer(file_name, vscode, new_width)
+FONT_BBOX_RATIO = 1.13 if vscode else 1.11
+IS_WIDTH = sys.argv[4] == "w"
+char_length = int(sys.argv[3]) * 2
+if not IS_WIDTH: char_length *= 2
+
+braille_string = image_to_braille_bayer(file_name, vscode, char_length)
 
 with open('braille.txt', 'w') as f:
     for line in braille_string:
