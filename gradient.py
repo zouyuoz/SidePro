@@ -1,30 +1,36 @@
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageTk
+import numpy as np
+import tkinter as tk
+import sys
 
-consolas = "C:/Windows/Fonts/consola.ttf"
-def draw_char(char, font_path=consolas, font_size=16, image_size=(10, 16)):
-    img = Image.new("L", image_size, color=255)
-    draw = ImageDraw.Draw(img)
+bayer = np.array([
+    [ 0,  8,  2, 10],
+    [12,  4, 14,  6],
+    [ 3, 11,  1,  9],
+    [15,  7, 13,  5]
+]) / 16.0
 
-    font = ImageFont.truetype(font_path, font_size)
+big_bayer = np.array([
+    [ 0, 32,  8, 40,  2, 34, 10, 42],
+    [48, 16, 56, 24, 50, 18, 58, 26],
+    [12, 44,  4, 35, 14, 46,  6, 38],
+    [60, 28, 52, 20, 62, 30, 54, 22],
+    [ 3, 35, 11, 43,  1, 33,  9, 41],
+    [51, 19, 59, 27, 49, 17, 57, 25],
+    [15, 47,  7, 39, 13, 45,  5, 37],
+    [63, 31, 55, 23, 61, 29, 53, 21]
+]) / 64.
 
-    bbox = draw.textbbox((0, 0), char, font=font)
-    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    pos = ((image_size[0] - w) // 2 - bbox[0], (image_size[1] - h) // 2 - bbox[1])
+def generate_bayer_matrix(n):
+    if n == 2:
+        return np.array([[0,2],[3,1]])
+    # else:
+    smaller_matrix = generate_bayer_matrix(n // 2)
+    return np.block([
+        [4 * smaller_matrix, 4 * smaller_matrix + 2],
+        [4 * smaller_matrix + 3, 4 * smaller_matrix + 1]
+    ])
 
-    # 畫字
-    draw.text(pos, char, fill=0, font=font)
-
-    # 畫 bbox 框線（加回 pos 的偏移量）
-    draw.rectangle(
-        [pos[0] + bbox[0], pos[1] + bbox[1], pos[0] + bbox[2], pos[1] + bbox[3]],
-        outline=128  # 灰色框
-    )
-
-    # 顯示圖片（限指定字元）
-    check_list = ["|", "`", ",", "_", "L", "^"]
-    if char in check_list:
-        img.show()
-
-# 範例
-for i in range(32, 127):
-    draw_char(chr(i))
+# 生成 16x16 Bayer 矩陣
+bayer_16x16 = generate_bayer_matrix(16)
+print(bayer_16x16)

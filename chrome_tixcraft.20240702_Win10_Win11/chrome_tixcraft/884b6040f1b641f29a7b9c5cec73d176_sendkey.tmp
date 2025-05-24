@@ -1,0 +1,11 @@
+{
+    "token": "884b6040f1b641f29a7b9c5cec73d176",
+    "command": [
+        {
+            "type": "sendkey",
+            "selector": "#TicketForm_verifyCode",
+            "text": "uktd",
+            "location": "https://tixcraft.com/ticket/ticket/25_lsf/19632/4/38"
+        }
+    ]
+}
